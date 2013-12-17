@@ -42,6 +42,7 @@ MyCom::MyCom(QObject *parent) :
     QObject(parent)
   , receive_bits_(0)
 {
+    port = new QextSerialPort;
 }
 
 /**
@@ -129,9 +130,29 @@ void MyCom::onReadyRead()
 }
 
 /**
+  * @brief 发送数据
+  **/
+void MyCom::sendData(QByteArray send_data)
+{
+    if (!port->isOpen())
+        return;
+
+    quint32 crc32code = getCrc32Code((quint8*)send_data.data(), send_data.length());
+    quint8 crc32[4] = {0};
+    crc32[0] = (quint8)(crc32code >> 24);
+    crc32[1] = (quint8)(crc32code >> 16);
+    crc32[2] = (quint8)(crc32code >> 8);
+    crc32[3] = (quint8)crc32code;
+    for (int i = 0; i < 4; ++i)
+        send_data.append((char)crc32[i]);
+
+    port->write(send_data);
+}
+
+/**
   * @brief 获取CRC32校验码
   **/
-quint32 MyCom::getCrc32Code(quint8* p, int len)
+quint32 MyCom::getCrc32Code(quint8 *p, int len)
 {
     unsigned int nReg;//CRC寄存器
     unsigned int nTemp = 0;
@@ -157,9 +178,9 @@ quint32 MyCom::getCrc32Code(quint8* p, int len)
   **/
 bool MyCom::checkCrc32(quint8 *p, int len)
 {
-    quint32 pcrc32 = ((quint32)(*(p+14)) << 24)
-            | ((quint32)(*(p+15)) << 16)
-            | ((quint32)(*(p+16)) << 8)
-            | ((quint32)(*(p+17)));
-    return pcrc32 == getCrc32Code(p, 14);
+    quint32 pcrc32 = ((quint32)(*(p + len - 4)) << 24)
+            | ((quint32)(*(p + len - 3)) << 16)
+            | ((quint32)(*(p + len - 2)) << 8)
+            | ((quint32)(*(p + len - 1)));
+    return pcrc32 == getCrc32Code(p, len - 4);
 }

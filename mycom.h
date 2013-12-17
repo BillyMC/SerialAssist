@@ -16,6 +16,7 @@ public:
     bool openPort(QString name, BaudRateType baudrate, DataBitsType databits, ParityType parity,
                    StopBitsType stopbits, FlowType flow);
     bool closePort();
+    void sendData(QByteArray send_data);
 
 private:
     quint32 getCrc32Code(quint8* p, int len);

@@ -192,9 +192,14 @@ void MainWindow::slotSend()
 {
     QByteArray data;
 
-    int len = StringToHex(ui->txte_SendWindow->toPlainText(), data);
-    for (int i = 0; i < data.size(); ++i)
-    qDebug() << (unsigned char)data[i];
+    QString qstr = "FF C" + ui->cobox_CardNO->currentText()
+            + " " + ui->txte_SendWindow->toPlainText();
+    int len = StringToHex(qstr, data);
+
+    serial_port_->sendData(data);
+
+//    for (int i = 0; i < data.size(); ++i)
+//        qDebug() << (unsigned char)data[i];
 }
 
 /**
