@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QStringList>
+#include <QScrollBar>
 #include <QDebug>
 
 
@@ -8,6 +9,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
   , is_port_opened(0)
+  , is_auto_move_to_bottom(0)
 {
     ui->setupUi(this);
     setWindowTitle(tr("Serial Assist V1.0"));
@@ -50,6 +52,8 @@ MainWindow::MainWindow(QWidget *parent) :
         cardno << QString::number(i);
     ui->cobox_CardNO->insertItems(0, cardno);
 
+    ui->cbox_AutoBottom->installEventFilter(this);
+
     ui->txte_Receive->setFontPointSize(8);
     ui->txte_Receive->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 
@@ -60,6 +64,9 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->tbtn_Send, SIGNAL(clicked()), this, SLOT(slotSend()));
     connect(serial_port_, SIGNAL(sigDisplayReceive(QVector<quint8>, bool)), this,
             SLOT(slotDisplayReceiveData(QVector<quint8>, bool)));
+    connect(serial_port_, SIGNAL(sigDisplaySend(QByteArray)), this, SLOT(slotDisplaySendData(QByteArray)));
+    connect(ui->tbtn_ClearReceive, SIGNAL(clicked()), this, SLOT(slotClearReceive()));
+    connect(ui->tbtn_ClearSend, SIGNAL(clicked()), this, SLOT(slotClearSend()));
 }
 
 MainWindow::~MainWindow()
@@ -124,7 +131,28 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     ui->tbtn_OpenCom->resize(100, 32);
     ui->tbtn_OpenCom->move(20, 150);
 
+    // 清除按钮
+    ui->tbtn_ClearReceive->resize(100, 32);
+    ui->tbtn_ClearSend->resize(100, 32);
+    ui->tbtn_ClearReceive->move(10, 190);
+    ui->tbtn_ClearSend->move(10, 225);
+
+    // 自动滚动
+    ui->cbox_AutoBottom->resize(150, 25);
+    ui->cbox_AutoBottom->move(10, 260);
+
     QMainWindow::resizeEvent(event);
+}
+
+bool MainWindow::eventFilter(QObject *object, QEvent *event)
+{
+    if (event->type() == Qt::Checked)
+    {
+        if (object == ui->cbox_AutoBottom)
+            is_auto_move_to_bottom =  !ui->cbox_AutoBottom->isChecked();
+    }
+
+    return 0;
 }
 
 /**
@@ -183,6 +211,12 @@ void MainWindow::slotDisplayReceiveData(QVector<quint8>receive_data, bool is_che
     else
         ui->txte_Receive->setTextColor(Qt::red);
     ui->txte_Receive->insertPlainText(qstr_end);
+
+    if (is_auto_move_to_bottom)
+    {
+        ui->txte_Receive->verticalScrollBar()->setValue(
+                    ui->txte_Receive->verticalScrollBar()->maximum());
+    }
 }
 
 /**
@@ -197,9 +231,58 @@ void MainWindow::slotSend()
     int len = StringToHex(qstr, data);
 
     serial_port_->sendData(data);
+}
 
-//    for (int i = 0; i < data.size(); ++i)
-//        qDebug() << (unsigned char)data[i];
+/**
+  * @brief 清空接收框
+  **/
+void MainWindow::slotClearReceive()
+{
+    ui->txte_Receive->clear();
+}
+
+/**
+  * @brief 清空发送框
+  **/
+void MainWindow::slotClearSend()
+{
+    ui->txte_Send->clear();
+}
+
+/**
+  * @brief 显示发送内容
+  **/
+void MainWindow::slotDisplaySendData(const QByteArray &data)
+{
+    QString qstr_begin;
+    QString qstr;
+    QString qstr_end;
+    int len = data.size();
+
+    for (int i = 0; i < 2; ++i)
+        qstr_begin += QString::number((unsigned char)data[i], 16).toUpper().rightJustified(2, '0') + " ";
+
+
+    for (int i = 2; i < len - 4; ++i)
+        qstr += QString::number((unsigned char)data[i], 16).toUpper().rightJustified(2, '0') + " ";
+
+    for (int i = len - 4; i < len; ++i)
+        qstr_end += QString::number((unsigned char)data[i], 16).toUpper().rightJustified(2, '0') + " ";
+
+    ui->txte_Send->setTextColor(Qt::gray);
+    ui->txte_Send->insertPlainText(qstr_begin);
+
+    ui->txte_Send->setTextColor(Qt::blue);
+    ui->txte_Send->insertPlainText(qstr);
+
+
+    ui->txte_Send->setTextColor(Qt::gray);
+    ui->txte_Send->insertPlainText(qstr_end);
+
+    if (is_auto_move_to_bottom)
+    {
+        ui->txte_Send->verticalScrollBar()->setValue(ui->txte_Send->verticalScrollBar()->maximum());
+    }
 }
 
 /**

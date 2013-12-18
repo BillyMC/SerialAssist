@@ -30,6 +30,7 @@ private slots:
 
 signals:
     void sigDisplayReceive(const QVector<quint8> receive_data, bool is_check_ok) const;
+    void sigDisplaySend(QByteArray send_data) const;
 };
 
 #endif // MYCOM_H

@@ -20,17 +20,23 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    bool is_port_opened;
     int StringToHex(QString qstr, QByteArray &data);
     char CharToHex(char ch);
 
+    bool is_auto_move_to_bottom;
+    bool is_port_opened;
+
 protected:
     void resizeEvent(QResizeEvent *);
+    bool eventFilter(QObject *, QEvent *);
 
 private slots:
     void slotOpenPort();
     void slotDisplayReceiveData(QVector<quint8>, bool);
+    void slotDisplaySendData(const QByteArray &data);
     void slotSend();
+    void slotClearReceive();
+    void slotClearSend();
 };
 
 #endif // MAINWINDOW_H

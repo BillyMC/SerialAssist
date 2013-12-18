@@ -138,15 +138,17 @@ void MyCom::sendData(QByteArray send_data)
         return;
 
     quint32 crc32code = getCrc32Code((quint8*)send_data.data(), send_data.length());
-    quint8 crc32[4] = {0};
-    crc32[0] = (quint8)(crc32code >> 24);
-    crc32[1] = (quint8)(crc32code >> 16);
-    crc32[2] = (quint8)(crc32code >> 8);
-    crc32[3] = (quint8)crc32code;
+    unsigned char crc32[4] = {0};
+    crc32[0] = (unsigned char)(crc32code >> 24);
+    crc32[1] = (unsigned char)(crc32code >> 16);
+    crc32[2] = (unsigned char)(crc32code >> 8);
+    crc32[3] = (unsigned char)crc32code;
     for (int i = 0; i < 4; ++i)
         send_data.append((char)crc32[i]);
 
     port->write(send_data);
+
+    emit sigDisplaySend(send_data);
 }
 
 /**
